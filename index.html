@@ -157,7 +157,7 @@
     50%{opacity:0.1;}
   }
 
-  /* ---------- INFO STREAM (centered, leaking downward) ---------- */
+  /* ---------- INFO STREAM (TAM ORTADA VE AŞAĞIDAN YUKARI AKIŞ) ---------- */
   #info-wrap{
     position:fixed;
     inset:0;
@@ -165,19 +165,19 @@
     display:flex;
     flex-direction:column;
     align-items:center;
-    justify-content:flex-start;
-    padding-top:5vh;
+    justify-content:center;
     pointer-events:none;
+    padding: 20px;
   }
 
   #info-title{
-    font-size: clamp(24px, 5.5vw, 48px);
+    font-size: clamp(26px, 5vw, 44px);
     color: var(--pink-light);
     text-shadow: 0 0 15px var(--pink-glow), 0 0 40px var(--pink-deep);
     letter-spacing:3px;
     opacity:0;
-    transition: opacity 1.8s ease;
-    margin-bottom: 18px;
+    transition: opacity 1.5s ease;
+    margin-bottom: 24px;
     text-align:center;
     text-transform: uppercase;
   }
@@ -185,39 +185,42 @@
   #info-title.show{ opacity:1; }
 
   #stream{
-    width:min(92%, 620px);
+    width:min(94%, 680px);
     display:flex;
     flex-direction:column;
     align-items:center;
-    font-family:'Courier New', monospace;
-    font-size: clamp(11px, 1.5vw, 15px);
+    justify-content:center;
+    font-family:'Courier New', Consolas, monospace;
     position:relative;
+    max-height: 75vh;
   }
 
   .line{
     opacity:0;
-    transform: translateY(-40px) scale(0.95);
+    transform: translateY(35px) scale(0.96);
     color: var(--pink-light);
-    text-shadow: 0 0 8px rgba(255,60,140,0.7), 0 0 2px #000;
+    text-shadow: 0 0 8px rgba(255,60,140,0.8), 0 0 3px #000;
     text-align:center;
-    letter-spacing:1px;
-    animation: leak 1.1s cubic-bezier(.2,.8,.2,1) forwards;
-    padding: 3px 0;
-    filter: blur(1px);
+    letter-spacing:1.5px;
+    animation: leakUp 0.75s cubic-bezier(.2,.8,.2,1) forwards;
+    padding: 4px 0;
+    filter: blur(2px);
+    line-height: 1.4;
   }
 
   .line b{
     color: var(--pink);
     font-weight:bold;
-    margin-right:6px;
-    text-shadow: 0 0 10px var(--pink-glow);
+    margin-right:8px;
+    text-shadow: 0 0 12px var(--pink-glow);
   }
 
-  @keyframes leak{
-    0%{ opacity:0; transform: translateY(-40px) scale(0.9); filter: blur(4px); }
-    30%{ opacity:0.9; filter: blur(0px); }
-    60%{ opacity:1; transform: translateY(2px) scale(1.01); }
-    100%{ opacity:0.85; transform: translateY(0) scale(1); }
+  /* Aşağıdan yukarıya doğru süzülme animasyonu */
+  @keyframes leakUp{
+    0%{ opacity:0; transform: translateY(35px) scale(0.92); filter: blur(4px); }
+    40%{ opacity:0.9; filter: blur(0px); }
+    70%{ opacity:1; transform: translateY(-3px) scale(1.01); }
+    100%{ opacity:0.92; transform: translateY(0) scale(1); }
   }
 
   #glow-line{
@@ -292,6 +295,7 @@
   const watchingEye = document.getElementById('watching-eye');
 
   let started = false;
+  let lineCount = 0;
 
   clickScreen.addEventListener('click', () => {
     if (started) return;
@@ -315,17 +319,22 @@
       infoTitle.classList.add('show');
       watchingEye.classList.add('show');
       revealInfo();
-    }, 1000);
+    }, 600);
   });
 
-  // adds a line at a random-ish delay so it feels like data is leaking out,
-  // not being read off a clean list
+  // Yazıları ekleme fonksiyonu: Eski yazılar biraz daha büyük, yeniler hafifçe küçülür
   function addLine(label, value, delay){
     setTimeout(() => {
       const div = document.createElement('div');
       div.className = 'line';
+      
+      // Temel font boyutu 18.5px'den başlayıp her satırda 0.3px küçülür (minimum 14.5px)
+      const calculatedSize = Math.max(18.5 - (lineCount * 0.3), 14.5);
+      div.style.fontSize = `${calculatedSize.toFixed(1)}px`;
+      
       div.innerHTML = `<b>${label}:</b>${value}`;
       stream.appendChild(div);
+      lineCount++;
     }, delay);
   }
 
@@ -345,8 +354,6 @@
     const dnt = navigator.doNotTrack || "unspecified";
     const now = new Date().toLocaleString('en-US');
 
-    // pool of facts, revealed out of order at irregular intervals
-    // to feel like a live leak rather than a neat report
     const facts = [
       ["BROWSER", ua],
       ["PLATFORM", platform],
@@ -360,9 +367,10 @@
       ["LOCAL TIME", now],
     ];
 
-    let t = 400;
+    // Daha hızlı akış hızı için süreler kısaltıldı (ortalama ~180-280ms aralığı)
+    let t = 150;
     facts.forEach(([label, value]) => {
-      t = jitter(t, 350) + 300;
+      t = jitter(t, 130) + 160;
       addLine(label, value, t);
     });
 
@@ -372,10 +380,10 @@
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
       const dbgInfo = gl.getExtension('WEBGL_debug_renderer_info');
       const renderer = gl.getParameter(dbgInfo.UNMASKED_RENDERER_WEBGL);
-      t = jitter(t, 350) + 300;
+      t = jitter(t, 150) + 180;
       addLine("GPU", renderer, t);
     }catch(e){
-      t = jitter(t, 350) + 300;
+      t = jitter(t, 150) + 180;
       addLine("GPU", "could not be read", t);
     }
 
@@ -383,31 +391,30 @@
     if (navigator.getBattery){
       try{
         const battery = await navigator.getBattery();
-        t = jitter(t, 350) + 300;
+        t = jitter(t, 150) + 180;
         addLine("BATTERY", `${Math.round(battery.level*100)}% ${battery.charging ? "(charging)" : ""}`, t);
       }catch(e){}
     }
 
-    // a couple of unsettling filler lines mixed into the leak
-    t = jitter(t, 400) + 400;
+    t = jitter(t, 200) + 220;
     addLine("STATUS", "still watching", t);
 
-    // IP / location (external lookup)
-    t = jitter(t, 400) + 500;
+    // IP / Location lookup (daha seri gelmesi için zamanlama sıkılaştırıldı)
+    t = jitter(t, 200) + 250;
     fetch('https://ipapi.co/json/')
       .then(res => res.json())
       .then(data => {
         let ti = t;
         addLine("IP ADDRESS", data.ip || "unknown", ti);
-        ti = jitter(ti, 300) + 300;
+        ti = jitter(ti, 150) + 160;
         addLine("ISP", data.org || "unknown", ti);
-        ti = jitter(ti, 300) + 300;
+        ti = jitter(ti, 150) + 160;
         addLine("CITY / COUNTRY", `${data.city || "?"}, ${data.country_name || "?"}`, ti);
-        ti = jitter(ti, 300) + 300;
+        ti = jitter(ti, 150) + 160;
         addLine("COORDINATES", `${data.latitude || "?"}, ${data.longitude || "?"}`, ti);
-        ti = jitter(ti, 300) + 300;
+        ti = jitter(ti, 150) + 160;
         addLine("TIMEZONE", data.timezone || "unknown", ti);
-        ti = jitter(ti, 400) + 500;
+        ti = jitter(ti, 200) + 250;
         addLine("STATUS", "i found you", ti);
       })
       .catch(() => {
