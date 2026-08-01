@@ -185,9 +185,10 @@
   #info-title.show{ opacity:1; }
 
   /* Sabit yükseklikte kutu: başlık ile alt arası. İçerik burada büyürken
-     tamamı bu alana sığacak şekilde otomatik ölçeklenir. */
+     tamamı bu alana (aşağıdan yukarıya, başlığa kadar) sığacak şekilde
+     otomatik ölçeklenir - hem küçültür hem de gerekirse büyütür. */
   #stream{
-    width:min(96%, 820px);
+    width:min(96%, 860px);
     flex:1 1 auto;
     position:relative;
     overflow:hidden;
@@ -195,7 +196,7 @@
   }
 
   /* Satırları tutan iç kapsayıcı: alta sabitli, yeni satır eklendikçe
-     yukarı doğru büyür. Sığmadığında transform: scale ile küçültülür. */
+     yukarı doğru büyür. */
   #stream-inner{
     position:absolute;
     left:0;
@@ -280,6 +281,73 @@
     0%, 90%, 100% { opacity: 0.8; }
     95% { opacity: 0.1; }
   }
+
+  /* ---------- FOLLOWING EYES (kenarlarda imleci takip eden gözler) ---------- */
+  .eye{
+    position:fixed;
+    width:64px;
+    height:42px;
+    border-radius:50%;
+    background:
+      radial-gradient(ellipse at center, rgba(20,0,10,0.9) 0%, rgba(60,0,20,0.85) 55%, rgba(10,0,5,0.95) 100%);
+    box-shadow:
+      0 0 18px rgba(255,60,140,0.55),
+      0 0 40px rgba(209,0,88,0.4),
+      inset 0 0 12px rgba(255,95,162,0.5);
+    border: 1px solid rgba(255,150,190,0.35);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:12;
+    pointer-events:none;
+    opacity:0;
+    transition: opacity 2s ease;
+    overflow:hidden;
+  }
+
+  .eye.show{
+    opacity:0.9;
+    animation: eyeCreepBlink 4.5s infinite;
+  }
+
+  .eye-left{  top:50%; left:1.5vw;  transform: translateY(-50%); }
+  .eye-right{ top:50%; right:1.5vw; transform: translateY(-50%); }
+  .eye-bl{    bottom:4vh; left:2.5vw; }
+  .eye-br{    bottom:4vh; right:2.5vw; }
+
+  .pupil{
+    width:14px;
+    height:26px;
+    border-radius:50%;
+    background: radial-gradient(circle at 50% 30%, #ff9dc7 0%, var(--pink-deep) 45%, #1a0008 100%);
+    box-shadow: 0 0 10px var(--pink-glow);
+    transform: translate(0,0);
+    transition: transform 0.08s linear;
+    position:relative;
+  }
+
+  .pupil::after{
+    content:'';
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:2px;
+    height:16px;
+    background: rgba(5,0,2,0.9);
+    transform: translate(-50%,-50%);
+    border-radius:2px;
+  }
+
+  @keyframes eyeCreepBlink{
+    0%, 88%, 100% { transform: scaleY(1); }
+    90% { transform: scaleY(0.08); }
+    92% { transform: scaleY(1); }
+  }
+
+  .eye-left.show{ animation: eyeCreepBlink 4.5s infinite; }
+  .eye-right.show{ animation: eyeCreepBlink 4.5s infinite 0.4s; }
+  .eye-bl.show{ animation: eyeCreepBlink 4.5s infinite 0.9s; }
+  .eye-br.show{ animation: eyeCreepBlink 4.5s infinite 1.3s; }
 </style>
 </head>
 <body>
@@ -290,6 +358,11 @@
   <div id="noise-flicker"></div>
   <div id="glow-line"></div>
   <div id="watching-eye">I can see everything you are</div>
+
+  <div class="eye eye-left"><div class="pupil"></div></div>
+  <div class="eye eye-right"><div class="pupil"></div></div>
+  <div class="eye eye-bl"><div class="pupil"></div></div>
+  <div class="eye eye-br"><div class="pupil"></div></div>
 
   <div id="click-screen">
     <div id="click-text">click :3</div>
@@ -313,6 +386,7 @@
   const glowLine = document.getElementById('glow-line');
   const noiseFlicker = document.getElementById('noise-flicker');
   const watchingEye = document.getElementById('watching-eye');
+  const eyes = Array.from(document.querySelectorAll('.eye'));
 
   let started = false;
   let lastSize = 26; // başlangıç font boyutu
@@ -326,6 +400,30 @@
     }
   }
 
+  // ---- Gözlerin fareyi takip etmesi ----
+  function updateEyes(clientX, clientY){
+    eyes.forEach(eye => {
+      const rect = eye.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = clientX - cx;
+      const dy = clientY - cy;
+      const angle = Math.atan2(dy, dx);
+      const maxDist = 10; // pupilin göz içinde hareket edebileceği en fazla mesafe
+      const px = Math.cos(angle) * maxDist;
+      const py = Math.sin(angle) * maxDist * 0.55; // göz oval olduğu için dikeyde biraz kısıtla
+      const pupil = eye.querySelector('.pupil');
+      pupil.style.transform = `translate(${px}px, ${py}px)`;
+    });
+  }
+
+  window.addEventListener('mousemove', (e) => updateEyes(e.clientX, e.clientY));
+  window.addEventListener('touchmove', (e) => {
+    if (e.touches && e.touches[0]){
+      updateEyes(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive:true });
+
   clickScreen.addEventListener('click', () => {
     if (started) return;
     started = true;
@@ -337,6 +435,7 @@
     bg.classList.add('revealed');
     glowLine.classList.add('show');
     noiseFlicker.classList.add('active');
+    eyes.forEach(eye => eye.classList.add('show'));
 
     song.volume = 0;
     song.play().catch(()=>{});
@@ -361,20 +460,18 @@
     return lastSize;
   }
 
-  // Tüm satırlar başlık ile alt arasındaki alana sığacak şekilde
-  // stream-inner'ı gerektiğinde ölçekler (kırpma/blur yok, sadece küçültme).
+  // Tüm satırlar başlık ile alt arasındaki alana TAM olarak sığacak/uzanacak
+  // şekilde stream-inner'ı ölçekler (gerekirse büyütür, gerekirse küçültür).
   function fitToContainer(){
-    // önce doğal boyuta dön ki gerçek yükseklik ölçülebilsin
     streamInner.style.transform = 'scale(1)';
     const naturalHeight = streamInner.scrollHeight;
     const availableHeight = stream.clientHeight;
 
-    if (naturalHeight > availableHeight && naturalHeight > 0){
-      const scale = Math.max(0.35, availableHeight / naturalHeight);
-      streamInner.style.transform = `scale(${scale})`;
-    } else {
-      streamInner.style.transform = 'scale(1)';
-    }
+    if (naturalHeight <= 0) return;
+
+    let scale = availableHeight / naturalHeight;
+    scale = Math.min(1.7, Math.max(0.32, scale));
+    streamInner.style.transform = `scale(${scale})`;
   }
 
   function addLine(label, value, delay, extraClass){
@@ -413,9 +510,15 @@
         ti = jitter(ti, 150) + 160;
         addLine("CITY / COUNTRY", `${data.city || "?"}, ${data.country_name || "?"}`, ti);
         ti = jitter(ti, 150) + 160;
+        addLine("REGION", data.region || "unknown", ti);
+        ti = jitter(ti, 150) + 160;
+        addLine("POSTAL CODE", data.postal || "unknown", ti);
+        ti = jitter(ti, 150) + 160;
         addLine("COORDINATES", `${data.latitude || "?"}, ${data.longitude || "?"}`, ti);
         ti = jitter(ti, 150) + 160;
         addLine("TIMEZONE", data.timezone || "unknown", ti);
+        ti = jitter(ti, 150) + 160;
+        addLine("ASN", data.asn || "unknown", ti);
 
         // 3) IP bilgisinden sonra diğer cihaz/tarayıcı bilgileri devam eder
         continueWithDeviceInfo(ti + jitter(200, 200));
@@ -430,30 +533,63 @@
     const ua = navigator.userAgent;
     const platform = navigator.platform || "unknown";
     const lang = navigator.language || "unknown";
+    const langs = navigator.languages ? navigator.languages.join(', ') : lang;
     const cores = navigator.hardwareConcurrency || "unknown";
     const mem = navigator.deviceMemory ? navigator.deviceMemory + " GB" : "unknown";
     const screenRes = `${screen.width}x${screen.height} (${screen.colorDepth}-bit)`;
     const windowRes = `${window.innerWidth}x${window.innerHeight}`;
+    const pixelRatio = window.devicePixelRatio || 1;
     const cookies = navigator.cookieEnabled ? "ENABLED" : "DISABLED";
+    const cookieCount = document.cookie ? document.cookie.split(';').filter(Boolean).length : 0;
     const dnt = navigator.doNotTrack || "unspecified";
     const now = new Date().toLocaleString('en-US');
+    const tzOffset = -new Date().getTimezoneOffset() / 60;
+    const referrer = document.referrer || "direct / none";
+    const touch = (navigator.maxTouchPoints || 0) > 0 ? `YES (${navigator.maxTouchPoints} points)` : "NO";
+    const orientation = (screen.orientation && screen.orientation.type) || "unknown";
+    const online = navigator.onLine ? "ONLINE" : "OFFLINE";
+    const histLen = history.length || "unknown";
+    const visibility = document.visibilityState || "unknown";
+    const conn = navigator.connection || {};
+    const connType = conn.effectiveType || "unknown";
+    const connDown = conn.downlink ? conn.downlink + " Mbps" : "unknown";
+    const connRtt = conn.rtt ? conn.rtt + " ms" : "unknown";
+    const swSupport = ('serviceWorker' in navigator) ? "SUPPORTED" : "NOT SUPPORTED";
+    const storageSupport = (typeof(Storage) !== "undefined") ? "AVAILABLE" : "UNAVAILABLE";
+    const pdfViewer = (navigator.pdfViewerEnabled !== undefined) ? (navigator.pdfViewerEnabled ? "YES" : "NO") : "unknown";
 
     const facts = [
       ["BROWSER", ua],
       ["PLATFORM", platform],
       ["LANGUAGE", lang],
+      ["LANGUAGES", langs],
+      ["REFERRER", referrer],
       ["CPU THREADS", cores],
       ["MEMORY (approx)", mem],
       ["SCREEN", screenRes],
       ["WINDOW SIZE", windowRes],
+      ["PIXEL RATIO", pixelRatio],
+      ["ORIENTATION", orientation],
+      ["TOUCH SUPPORT", touch],
+      ["TIMEZONE OFFSET", `UTC${tzOffset >= 0 ? '+' : ''}${tzOffset}`],
       ["COOKIES", cookies],
+      ["COOKIE COUNT", cookieCount],
       ["DO NOT TRACK", dnt],
+      ["ONLINE STATUS", online],
+      ["CONNECTION TYPE", connType],
+      ["DOWNLINK", connDown],
+      ["ROUND TRIP TIME", connRtt],
+      ["HISTORY LENGTH", histLen],
+      ["TAB VISIBILITY", visibility],
+      ["SERVICE WORKER", swSupport],
+      ["LOCAL STORAGE", storageSupport],
+      ["PDF VIEWER", pdfViewer],
       ["LOCAL TIME", now],
     ];
 
     let t = startDelay;
     facts.forEach(([label, value]) => {
-      t = jitter(t, 130) + 160;
+      t = jitter(t, 110) + 140;
       addLine(label, value, t);
     });
 
@@ -463,23 +599,35 @@
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
       const dbgInfo = gl.getExtension('WEBGL_debug_renderer_info');
       const renderer = gl.getParameter(dbgInfo.UNMASKED_RENDERER_WEBGL);
-      t = jitter(t, 150) + 180;
-      addLine("GPU", renderer, t);
+      const vendor = gl.getParameter(dbgInfo.UNMASKED_VENDOR_WEBGL);
+      t = jitter(t, 140) + 170;
+      addLine("GPU VENDOR", vendor, t);
+      t = jitter(t, 140) + 170;
+      addLine("GPU RENDERER", renderer, t);
     }catch(e){
-      t = jitter(t, 150) + 180;
+      t = jitter(t, 140) + 170;
       addLine("GPU", "could not be read", t);
     }
+
+    // Audio context sample rate
+    try{
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const actx = new AudioCtx();
+      t = jitter(t, 140) + 170;
+      addLine("AUDIO SAMPLE RATE", `${actx.sampleRate} Hz`, t);
+      actx.close && actx.close();
+    }catch(e){}
 
     // Battery
     if (navigator.getBattery){
       try{
         const battery = await navigator.getBattery();
-        t = jitter(t, 150) + 180;
+        t = jitter(t, 140) + 170;
         addLine("BATTERY", `${Math.round(battery.level*100)}% ${battery.charging ? "(charging)" : ""}`, t);
       }catch(e){}
     }
 
-    t = jitter(t, 200) + 220;
+    t = jitter(t, 200) + 250;
     addLine("STATUS", "i found you", t);
   }
 </script>
