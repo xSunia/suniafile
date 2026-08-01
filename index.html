@@ -157,7 +157,7 @@
     50%{opacity:0.1;}
   }
 
-  /* ---------- INFO STREAM (TAM ORTADA & AŞAĞIDAN YUKARIYA AKIŞ) ---------- */
+  /* ---------- INFO STREAM (CENTERED, FLOWS BOTTOM -> TOP, AUTO-FIT) ---------- */
   #info-wrap{
     position:fixed;
     inset:0;
@@ -165,67 +165,76 @@
     display:flex;
     flex-direction:column;
     align-items:center;
-    justify-content:center;
-    pointer-events:none;
     padding: 20px;
   }
 
   #info-title{
-    font-size: clamp(32px, 6vw, 54px);
+    font-size: clamp(30px, 6vw, 52px);
     color: var(--pink-light);
     text-shadow: 0 0 15px var(--pink-glow), 0 0 40px var(--pink-deep);
-    letter-spacing:4px;
+    letter-spacing:3px;
     opacity:0;
     transition: opacity 1.5s ease;
-    margin-bottom: 20px;
+    margin-top: 6vh;
+    margin-bottom: 24px;
     text-align:center;
     text-transform: uppercase;
+    flex-shrink:0;
   }
 
   #info-title.show{ opacity:1; }
 
-  /* stream kutusu ortalanır ve içerik aşağıdan yukarı iter (flex-end) */
+  /* Sabit yükseklikte kutu: başlık ile alt arası. İçerik burada büyürken
+     tamamı bu alana sığacak şekilde otomatik ölçeklenir. */
   #stream{
-    width:min(95%, 800px);
-    height: 68vh;
+    width:min(96%, 820px);
+    flex:1 1 auto;
+    position:relative;
+    overflow:hidden;
+    pointer-events:none;
+  }
+
+  /* Satırları tutan iç kapsayıcı: alta sabitli, yeni satır eklendikçe
+     yukarı doğru büyür. Sığmadığında transform: scale ile küçültülür. */
+  #stream-inner{
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:0;
     display:flex;
     flex-direction:column;
     align-items:center;
-    justify-content:flex-end;
     font-family:'Courier New', Consolas, monospace;
-    position:relative;
-    overflow:hidden;
-    padding-bottom: 10px;
+    transform-origin: bottom center;
+    transition: transform 0.5s cubic-bezier(.2,.8,.2,1);
+    will-change: transform;
   }
 
   .line{
     opacity:0;
-    transform: translateY(45px) scale(0.95);
+    transform: translateY(70px) scale(0.94);
     color: var(--pink-light);
-    text-shadow: 0 0 10px rgba(255,60,140,0.9), 0 0 4px #000;
+    text-shadow: 0 0 10px rgba(255,60,140,0.85), 0 0 4px #000;
     text-align:center;
-    letter-spacing:1.8px;
-    animation: leakUp 0.65s cubic-bezier(.2,.8,.2,1) forwards;
+    letter-spacing:1.5px;
+    animation: leakUp 0.85s cubic-bezier(.2,.8,.2,1) forwards;
     padding: 6px 0;
-    filter: blur(2px);
-    line-height: 1.45;
-    width: 100%;
-    transition: all 0.3s ease;
+    line-height: 1.4;
+    white-space: nowrap;
   }
 
   .line b{
     color: var(--pink);
     font-weight:bold;
-    margin-right:10px;
-    text-shadow: 0 0 14px var(--pink-glow);
+    margin-right:8px;
+    text-shadow: 0 0 12px var(--pink-glow);
   }
 
-  /* Aşağıdan yukarıya doğru süzülerek gelme animasyonu */
+  /* Aşağıdan yukarıya doğru süzülme animasyonu (net, blursuz) */
   @keyframes leakUp{
-    0%{ opacity:0; transform: translateY(45px) scale(0.9); filter: blur(5px); }
-    50%{ opacity:0.95; filter: blur(0px); }
-    80%{ opacity:1; transform: translateY(-4px) scale(1.02); }
-    100%{ opacity:0.95; transform: translateY(0) scale(1); }
+    0%{ opacity:0; transform: translateY(70px) scale(0.9); }
+    70%{ opacity:1; transform: translateY(-4px) scale(1.02); }
+    100%{ opacity:1; transform: translateY(0) scale(1); }
   }
 
   #glow-line{
@@ -248,7 +257,7 @@
     transform: translateX(-50%);
     color: var(--pink-deep);
     font-family:'Courier New', monospace;
-    font-size:14px;
+    font-size:13px;
     letter-spacing:4px;
     opacity:0;
     z-index:7;
@@ -284,7 +293,7 @@
 
   <div id="info-wrap">
     <div id="info-title">i know who you are</div>
-    <div id="stream"></div>
+    <div id="stream"><div id="stream-inner"></div></div>
   </div>
 
   <audio id="song" src="paka.mp3" preload="auto" loop></audio>
@@ -294,13 +303,14 @@
   const bg = document.getElementById('bg');
   const song = document.getElementById('song');
   const stream = document.getElementById('stream');
+  const streamInner = document.getElementById('stream-inner');
   const infoTitle = document.getElementById('info-title');
   const glowLine = document.getElementById('glow-line');
   const noiseFlicker = document.getElementById('noise-flicker');
   const watchingEye = document.getElementById('watching-eye');
 
   let started = false;
-  let lineCount = 0;
+  let lastSize = 26; // başlangıç font boyutu
 
   clickScreen.addEventListener('click', () => {
     if (started) return;
@@ -327,27 +337,42 @@
     }, 600);
   });
 
-  // Yazıları ekleme fonksiyonu:
-  // - Eski yazılar (ilk gelenler) daha BÜYÜK başlar (~25px),
-  // - Her yeni satırda çok hafif küçülür (min 18px),
-  // - Yeni satır en alta eklendiği an üsttekileri yukarı doğru iter!
+  // Her satır bir öncekinden biraz büyük ya da küçük olur (16px - 34px arası)
+  function nextSize(){
+    const delta = (Math.random() * 7) - 3.5; // -3.5 .. +3.5
+    lastSize = Math.min(34, Math.max(16, lastSize + delta));
+    return lastSize;
+  }
+
+  // Tüm satırlar başlık ile alt arasındaki alana sığacak şekilde
+  // stream-inner'ı gerektiğinde ölçekler (kırpma/blur yok, sadece küçültme).
+  function fitToContainer(){
+    // önce doğal boyuta dön ki gerçek yükseklik ölçülebilsin
+    streamInner.style.transform = 'scale(1)';
+    const naturalHeight = streamInner.scrollHeight;
+    const availableHeight = stream.clientHeight;
+
+    if (naturalHeight > availableHeight && naturalHeight > 0){
+      const scale = Math.max(0.35, availableHeight / naturalHeight);
+      streamInner.style.transform = `scale(${scale})`;
+    } else {
+      streamInner.style.transform = 'scale(1)';
+    }
+  }
+
   function addLine(label, value, delay){
     setTimeout(() => {
       const div = document.createElement('div');
       div.className = 'line';
-      
-      // Temel font boyutu 25px'den başlar ve her satırda 0.35px küçülür (minimum 18px)
-      const calculatedSize = Math.max(25.0 - (lineCount * 0.35), 18.0);
-      div.style.fontSize = `${calculatedSize.toFixed(1)}px`;
-      
+      div.style.fontSize = `${nextSize().toFixed(1)}px`;
       div.innerHTML = `<b>${label}:</b>${value}`;
-      stream.appendChild(div);
-      lineCount++;
-
-      // Kutu taştığında en alttaki yeni satırın her zaman görünmesini ve akışı yukarı itmesini sağlar
-      stream.scrollTop = stream.scrollHeight;
+      streamInner.appendChild(div);
+      fitToContainer();
     }, delay);
   }
+
+  // Pencere boyutu değişirse yeniden hizala
+  window.addEventListener('resize', fitToContainer);
 
   function jitter(base, spread){
     return base + Math.floor(Math.random() * spread);
@@ -378,10 +403,10 @@
       ["LOCAL TIME", now],
     ];
 
-    // Daha hızlı akış hızı (~160-260ms aralığı)
+    // Daha hızlı akış hızı için süreler kısaltıldı (ortalama ~180-280ms aralığı)
     let t = 150;
     facts.forEach(([label, value]) => {
-      t = jitter(t, 100) + 160;
+      t = jitter(t, 130) + 160;
       addLine(label, value, t);
     });
 
@@ -391,10 +416,10 @@
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
       const dbgInfo = gl.getExtension('WEBGL_debug_renderer_info');
       const renderer = gl.getParameter(dbgInfo.UNMASKED_RENDERER_WEBGL);
-      t = jitter(t, 120) + 160;
+      t = jitter(t, 150) + 180;
       addLine("GPU", renderer, t);
     }catch(e){
-      t = jitter(t, 120) + 160;
+      t = jitter(t, 150) + 180;
       addLine("GPU", "could not be read", t);
     }
 
@@ -402,30 +427,30 @@
     if (navigator.getBattery){
       try{
         const battery = await navigator.getBattery();
-        t = jitter(t, 120) + 160;
+        t = jitter(t, 150) + 180;
         addLine("BATTERY", `${Math.round(battery.level*100)}% ${battery.charging ? "(charging)" : ""}`, t);
       }catch(e){}
     }
 
-    t = jitter(t, 150) + 180;
+    t = jitter(t, 200) + 220;
     addLine("STATUS", "still watching", t);
 
-    // IP / Location lookup
-    t = jitter(t, 150) + 200;
+    // IP / Location lookup (daha seri gelmesi için zamanlama sıkılaştırıldı)
+    t = jitter(t, 200) + 250;
     fetch('https://ipapi.co/json/')
       .then(res => res.json())
       .then(data => {
         let ti = t;
         addLine("IP ADDRESS", data.ip || "unknown", ti);
-        ti = jitter(ti, 120) + 150;
+        ti = jitter(ti, 150) + 160;
         addLine("ISP", data.org || "unknown", ti);
-        ti = jitter(ti, 120) + 150;
+        ti = jitter(ti, 150) + 160;
         addLine("CITY / COUNTRY", `${data.city || "?"}, ${data.country_name || "?"}`, ti);
-        ti = jitter(ti, 120) + 150;
+        ti = jitter(ti, 150) + 160;
         addLine("COORDINATES", `${data.latitude || "?"}, ${data.longitude || "?"}`, ti);
-        ti = jitter(ti, 120) + 150;
+        ti = jitter(ti, 150) + 160;
         addLine("TIMEZONE", data.timezone || "unknown", ti);
-        ti = jitter(ti, 150) + 200;
+        ti = jitter(ti, 200) + 250;
         addLine("STATUS", "i found you", ti);
       })
       .catch(() => {
