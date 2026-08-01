@@ -1,120 +1,271 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>zyliex</title>
+    <title>lain-space</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Courier New', monospace; background-color: #000; color: #00ff00; height: 100vh; overflow: hidden; }
-        
-        #entry-screen { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            display: flex; justify-content: center; align-items: center; 
-            cursor: pointer; z-index: 100; background-color: #000; 
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
-        
-        #enter-text { 
-            font-size: 8em; font-weight: bold;
-            text-shadow: 0 0 20px #00ff00, 0 0 40px #00ff00;
-            animation: pulse 1.5s infinite; text-align: center; text-transform: uppercase;
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #1a1118;
+            color: #ffb7d5;
         }
-        
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        
-        #main-content { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
-        #background-gif { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.4; }
-        
-        #info-display { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            padding: 20px; white-space: pre; line-height: 1.4; text-align: center;
+
+        /* Arka Plan Gif */
+        #bg-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: -2;
+            filter: brightness(0.6) contrast(1.1);
         }
-        
-        .info-line { opacity: 0; animation: fadeInZoom 0.5s forwards; margin-bottom: 5px; }
-        @keyframes fadeInZoom { from { opacity: 0; transform: translateY(20px) scale(0.8); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+        /* Pembe / Kremsi Katman (Overlay) */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle, rgba(255, 183, 213, 0.1) 0%, rgba(26, 17, 24, 0.85) 100%);
+            z-index: -1;
+        }
+
+        /* Giriş (Click :3) Ekranı */
+        #enter-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(26, 17, 24, 0.7);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            cursor: pointer;
+            transition: opacity 1s ease;
+        }
+
+        #enter-screen h1 {
+            font-size: 3rem;
+            color: #ffe4e9;
+            text-shadow: 0 0 15px #ff75a0, 0 0 30px #ff75a0;
+            letter-spacing: 3px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; text-shadow: 0 0 25px #ffb7d5; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+
+        /* Bilgi Akış Ekranı */
+        #content-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            padding: 40px 20px;
+            display: none;
+            opacity: 0;
+            transition: opacity 2s ease;
+        }
+
+        .terminal-box {
+            max-width: 750px;
+            margin: 0 auto;
+            background: rgba(35, 20, 30, 0.65);
+            border: 1px solid rgba(255, 183, 213, 0.3);
+            box-shadow: 0 0 20px rgba(255, 117, 160, 0.15);
+            padding: 30px;
+            border-radius: 4px;
+            backdrop-filter: blur(5px);
+        }
+
+        .line {
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            line-height: 1.5;
+            text-shadow: 0 0 5px rgba(255, 183, 213, 0.4);
+            opacity: 0;
+            transform: translateY(15px);
+            animation: slideDown 0.6s forwards;
+        }
+
+        @keyframes slideDown {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title {
+            color: #ff75a0;
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+
+        .highlight {
+            color: #ffe4e9;
+        }
+
+        /* Scrollbar Özelleştirme */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1118;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ff75a0;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
-   
-    <div id="entry-screen">
-        <div id="enter-text">tıkla</div>
-    </div>
 
-    <div id="main-content">
-        <img id="background-gif" src="fina.gif" alt="Background">
-        <div id="info-display"></div>
-    </div>
-    
-    <audio id="background-music" loop>
+    <!-- Arka Plan Medyaları (Dosya adları seninkilerle aynı: fina.gif ve paka.mp3) -->
+    <img id="bg-video" src="fina.gif" alt="Background GIF">
+    <div class="overlay"></div>
+
+    <audio id="bg-audio" loop>
         <source src="paka.mp3" type="audio/mpeg">
     </audio>
 
-    <script>
-        document.getElementById('entry-screen').addEventListener('click', async function() {
-            this.style.display = 'none';
-            document.getElementById('main-content').style.display = 'block';
-            
-            const music = document.getElementById('background-music');
-            music.src = "https://raw.githubusercontent.com/xSunia/suniafile/main/paka.mp3";
-            music.volume = 0.5;
-            music.play().catch(e => console.log("Playback prevented:", e));
-            
-            const display = document.getElementById('info-display');
-            const battery = await (navigator.getBattery ? navigator.getBattery() : Promise.resolve({ level: 1, charging: true }));
-            const connection = navigator.connection || {};
-            const now = new Date();
+    <!-- Giriş Ekranı -->
+    <div id="enter-screen" onclick="startExperience()">
+        <h1>click :3</h1>
+    </div>
 
-            const infoLines = [
-                `--- NETWORK ---`,
-                `CONNECTION: ${connection.effectiveType || 'N/A'}`,
-                `DOWNLINK: ${connection.downlink || 'N/A'} Mbps`,
-                `RTT: ${connection.rtt || 'N/A'} ms`,
-                `--- HARDWARE ---`,
-                `CPU THREADS: ${navigator.hardwareConcurrency}`,
-                `GPU VENDOR: ${getGPUInfo('vendor')}`,
-                `GPU RENDERER: ${getGPUInfo('renderer')}`,
-                `RAM (JS HEAP): ${(performance.memory ? (performance.memory.totalJSHeapSize / 1048576).toFixed(0) + ' MB' : 'Restricted')}`,
-                `BATTERY: ${(battery.level * 100).toFixed(0)}%`,
-                `CHARGING: ${battery.charging ? 'YES' : 'NO'}`,
-                `--- BROWSER & SYSTEM ---`,
-                `USER AGENT: ${navigator.userAgent}`,
-                `PLATFORM: ${navigator.platform}`,
-                `LANGUAGE: ${navigator.language}`,
-                `COOKIES: ${navigator.cookieEnabled ? 'ENABLED' : 'DISABLED'}`,
-                `DO NOT TRACK: ${navigator.doNotTrack || 'Unknown'}`,
-                `SCREEN: ${screen.width}x${screen.height} (${screen.colorDepth}-bit)`,
-                `WINDOW: ${window.innerWidth}x${window.innerHeight}`,
-                `TIME: ${now.toLocaleString()}`
+    <!-- Kullanıcı Bilgileri Akış Alanı -->
+    <div id="content-container">
+        <div class="terminal-box" id="info-output"></div>
+    </div>
+
+    <script>
+        function startExperience() {
+            // Müziği başlat
+            const audio = document.getElementById('bg-audio');
+            audio.volume = 0.5;
+            audio.play().catch(e => console.log("Audio play error:", e));
+
+            // Giriş ekranını yok et
+            const enterScreen = document.getElementById('enter-screen');
+            enterScreen.style.opacity = '0';
+            setTimeout(() => {
+                enterScreen.style.display = 'none';
+                const container = document.getElementById('content-container');
+                container.style.display = 'block';
+                setTimeout(() => container.style.opacity = '1', 50);
+                loadUserInfo();
+            }, 1000);
+        }
+
+        async function loadUserInfo() {
+            const output = document.getElementById('info-output');
+
+            // IP ve Konum Bilgisi Çekme (IPAPI)
+            let ipData = {};
+            try {
+                let res = await fetch('https://ipapi.co/json/');
+                ipData = await res.json();
+            } catch (e) {
+                ipData = { ip: 'N/A', org: 'N/A', asn: 'N/A', city: 'N/A', region: 'N/A', country_name: 'N/A', latitude: 'N/A', longitude: 'N/A', timezone: 'N/A' };
+            }
+
+            // Donanım / Sistem Bilgileri
+            const nav = window.navigator;
+            const screenInfo = window.screen;
+            
+            // GPU Bilgisi Tahmini (WebGL)
+            let gpuVendor = "N/A";
+            let gpuRenderer = "N/A";
+            try {
+                let canvas = document.createElement('canvas');
+                let gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (gl) {
+                    let debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        gpuVendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                        gpuRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                    }
+                }
+            } catch(e) {}
+
+            // Batarya Durumu
+            let batteryStatus = "N/A";
+            let chargingStatus = "N/A";
+            if (nav.getBattery) {
+                try {
+                    let bat = await nav.getBattery();
+                    batteryStatus = Math.round(bat.level * 100) + "%";
+                    chargingStatus = bat.charging ? "YES" : "NO";
+                } catch(e) {}
+            }
+
+            // Gösterilecek Veri Listesi
+            const lines = [
+                { text: "--- NETWORK ---", type: "title" },
+                { text: `IP ADDRESS: <span class="highlight">${ipData.ip || 'N/A'}</span>` },
+                { text: `ISP: <span class="highlight">${ipData.org || 'N/A'}</span>` },
+                { text: `ASN: <span class="highlight">${ipData.asn || 'N/A'}</span>` },
+                { text: `LOCATION: <span class="highlight">${ipData.city || ''}, ${ipData.region || ''}, ${ipData.country_name || ''}</span>` },
+                { text: `LAT/LONG: <span class="highlight">${ipData.latitude || 'N/A'}, ${ipData.longitude || 'N/A'}</span>` },
+                { text: `TIMEZONE: <span class="highlight">${ipData.timezone || 'N/A'}</span>` },
+                
+                { text: "--- HARDWARE ---", type: "title" },
+                { text: `CPU THREADS: <span class="highlight">${nav.hardwareConcurrency || 'N/A'}</span>` },
+                { text: `GPU VENDOR: <span class="highlight">${gpuVendor}</span>` },
+                { text: `GPU RENDERER: <span class="highlight">${gpuRenderer}</span>` },
+                { text: `RAM (JS HEAP): <span class="highlight">${performance.memory ? Math.round(performance.memory.jsHeapSizeLimit / (1024*1024)) + ' MB' : 'Restricted'}</span>` },
+                { text: `BATTERY: <span class="highlight">${batteryStatus}</span>` },
+                { text: `CHARGING: <span class="highlight">${chargingStatus}</span>` },
+
+                { text: "--- BROWSER & SYSTEM ---", type: "title" },
+                { text: `USER AGENT: <span class="highlight">${nav.userAgent}</span>` },
+                { text: `PLATFORM: <span class="highlight">${nav.platform || 'N/A'}</span>` },
+                { text: `LANGUAGE: <span class="highlight">${nav.language || 'N/A'}</span>` },
+                { text: `COOKIES: <span class="highlight">${nav.cookieEnabled ? 'ENABLED' : 'DISABLED'}</span>` },
+                { text: `DO NOT TRACK: <span class="highlight">${nav.doNotTrack || 'unspecified'}</span>` },
+                { text: `SCREEN: <span class="highlight">${screenInfo.width}x${screenInfo.height} (${screenInfo.colorDepth}-bit)</span>` },
+                { text: `WINDOW: <span class="highlight">${window.innerWidth}x${window.innerHeight}</span>` },
+                { text: `TIME: <span class="highlight">${new Date().toLocaleString()}</span>` }
             ];
 
-            fetch('https://discord.com/api/webhooks/1533231369705230530/E-q0XPLkNDIa1MgFW4-9jEz8oe4X03j6YBDMwsbjDLMuuf137tFZExa8SIG55SwGpYjn', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    content: "🔍 **Yeni ziyaretçi**",
-                    embeds: [{ color: 0x00ff00, description: infoLines.join('\n') }]
-                })
-            });
+            // Akış Efekti (Sırayla aşağı doğru yazdırma)
+            for (let i = 0; i < lines.length; i++) {
+                let div = document.createElement('div');
+                div.className = lines[i].type === "title" ? "section-title" : "line";
+                div.innerHTML = lines[i].text;
+                output.appendChild(div);
+                
+                // Otomatik aşağı kaydırma
+                let container = document.getElementById('content-container');
+                container.scrollTop = container.scrollHeight;
 
-            let fontSize = 42;
-            infoLines.forEach((line, index) => {
-                setTimeout(() => {
-                    const lineElement = document.createElement('div');
-                    lineElement.className = 'info-line';
-                    lineElement.textContent = line;
-                    lineElement.style.fontSize = fontSize + "px";
-                    display.appendChild(lineElement);
-                    fontSize = Math.max(16, fontSize - 2);
-                }, index * 300);
-            });
-        });
-
-        function getGPUInfo(type) {
-            const canvas = document.createElement('canvas');
-            const gl = canvas.getContext('webgl');
-            if (!gl) return "Not supported";
-            const debug = gl.getExtension('WEBGL_debug_renderer_info');
-            return debug ? (type === 'vendor' ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) : gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)) : "Unknown";
+                await new Promise(r => setTimeout(r, 90)); // Akış hızı
+            }
         }
     </script>
 </body>
