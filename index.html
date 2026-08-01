@@ -230,6 +230,11 @@
     text-shadow: 0 0 12px var(--pink-glow);
   }
 
+  /* İlk "who are you?" satırı biraz farklı vurgulansın */
+  .line.question b{
+    color: var(--pink-light);
+  }
+
   /* Aşağıdan yukarıya doğru süzülme animasyonu (net, blursuz) */
   @keyframes leakUp{
     0%{ opacity:0; transform: translateY(70px) scale(0.9); }
@@ -312,9 +317,21 @@
   let started = false;
   let lastSize = 26; // başlangıç font boyutu
 
+  // Tam ekrana geçmeyi dener (tarayıcı izin verirse)
+  function goFullscreen(){
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (req){
+      req.call(el).catch(() => {});
+    }
+  }
+
   clickScreen.addEventListener('click', () => {
     if (started) return;
     started = true;
+
+    // Tam ekran isteği kullanıcı tıklamasıyla aynı anda tetiklenmeli
+    goFullscreen();
 
     clickScreen.classList.add('hidden');
     bg.classList.add('revealed');
@@ -360,10 +377,10 @@
     }
   }
 
-  function addLine(label, value, delay){
+  function addLine(label, value, delay, extraClass){
     setTimeout(() => {
       const div = document.createElement('div');
-      div.className = 'line';
+      div.className = 'line' + (extraClass ? ' ' + extraClass : '');
       div.style.fontSize = `${nextSize().toFixed(1)}px`;
       div.innerHTML = `<b>${label}:</b>${value}`;
       streamInner.appendChild(div);
@@ -379,6 +396,37 @@
   }
 
   async function revealInfo(){
+    let t = 150;
+
+    // 1) Başlıktan hemen sonra ilk soru satırı
+    addLine("STATUS", "who are you?", t, "question");
+
+    // 2) Ardından IP adresi ve konum bilgileri
+    t = jitter(t, 200) + 400;
+    fetch('https://ipapi.co/json/')
+      .then(res => res.json())
+      .then(data => {
+        let ti = t;
+        addLine("IP ADDRESS", data.ip || "unknown", ti);
+        ti = jitter(ti, 150) + 160;
+        addLine("ISP", data.org || "unknown", ti);
+        ti = jitter(ti, 150) + 160;
+        addLine("CITY / COUNTRY", `${data.city || "?"}, ${data.country_name || "?"}`, ti);
+        ti = jitter(ti, 150) + 160;
+        addLine("COORDINATES", `${data.latitude || "?"}, ${data.longitude || "?"}`, ti);
+        ti = jitter(ti, 150) + 160;
+        addLine("TIMEZONE", data.timezone || "unknown", ti);
+
+        // 3) IP bilgisinden sonra diğer cihaz/tarayıcı bilgileri devam eder
+        continueWithDeviceInfo(ti + jitter(200, 200));
+      })
+      .catch(() => {
+        addLine("IP ADDRESS", "connection blocked", t);
+        continueWithDeviceInfo(t + jitter(300, 200));
+      });
+  }
+
+  async function continueWithDeviceInfo(startDelay){
     const ua = navigator.userAgent;
     const platform = navigator.platform || "unknown";
     const lang = navigator.language || "unknown";
@@ -403,8 +451,7 @@
       ["LOCAL TIME", now],
     ];
 
-    // Daha hızlı akış hızı için süreler kısaltıldı (ortalama ~180-280ms aralığı)
-    let t = 150;
+    let t = startDelay;
     facts.forEach(([label, value]) => {
       t = jitter(t, 130) + 160;
       addLine(label, value, t);
@@ -433,29 +480,7 @@
     }
 
     t = jitter(t, 200) + 220;
-    addLine("STATUS", "still watching", t);
-
-    // IP / Location lookup (daha seri gelmesi için zamanlama sıkılaştırıldı)
-    t = jitter(t, 200) + 250;
-    fetch('https://ipapi.co/json/')
-      .then(res => res.json())
-      .then(data => {
-        let ti = t;
-        addLine("IP ADDRESS", data.ip || "unknown", ti);
-        ti = jitter(ti, 150) + 160;
-        addLine("ISP", data.org || "unknown", ti);
-        ti = jitter(ti, 150) + 160;
-        addLine("CITY / COUNTRY", `${data.city || "?"}, ${data.country_name || "?"}`, ti);
-        ti = jitter(ti, 150) + 160;
-        addLine("COORDINATES", `${data.latitude || "?"}, ${data.longitude || "?"}`, ti);
-        ti = jitter(ti, 150) + 160;
-        addLine("TIMEZONE", data.timezone || "unknown", ti);
-        ti = jitter(ti, 200) + 250;
-        addLine("STATUS", "i found you", ti);
-      })
-      .catch(() => {
-        addLine("IP ADDRESS", "connection blocked", t);
-      });
+    addLine("STATUS", "i found you", t);
   }
 </script>
 
