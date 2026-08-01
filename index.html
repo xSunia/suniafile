@@ -157,7 +157,7 @@
     50%{opacity:0.1;}
   }
 
-  /* ---------- INFO STREAM (TAM ORTADA VE AŞAĞIDAN YUKARI AKIŞ) ---------- */
+  /* ---------- INFO STREAM (TAM ORTADA & AŞAĞIDAN YUKARIYA AKIŞ) ---------- */
   #info-wrap{
     position:fixed;
     inset:0;
@@ -171,56 +171,61 @@
   }
 
   #info-title{
-    font-size: clamp(26px, 5vw, 44px);
+    font-size: clamp(32px, 6vw, 54px);
     color: var(--pink-light);
     text-shadow: 0 0 15px var(--pink-glow), 0 0 40px var(--pink-deep);
-    letter-spacing:3px;
+    letter-spacing:4px;
     opacity:0;
     transition: opacity 1.5s ease;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     text-align:center;
     text-transform: uppercase;
   }
 
   #info-title.show{ opacity:1; }
 
+  /* stream kutusu ortalanır ve içerik aşağıdan yukarı iter (flex-end) */
   #stream{
-    width:min(94%, 680px);
+    width:min(95%, 800px);
+    height: 68vh;
     display:flex;
     flex-direction:column;
     align-items:center;
-    justify-content:center;
+    justify-content:flex-end;
     font-family:'Courier New', Consolas, monospace;
     position:relative;
-    max-height: 75vh;
+    overflow:hidden;
+    padding-bottom: 10px;
   }
 
   .line{
     opacity:0;
-    transform: translateY(35px) scale(0.96);
+    transform: translateY(45px) scale(0.95);
     color: var(--pink-light);
-    text-shadow: 0 0 8px rgba(255,60,140,0.8), 0 0 3px #000;
+    text-shadow: 0 0 10px rgba(255,60,140,0.9), 0 0 4px #000;
     text-align:center;
-    letter-spacing:1.5px;
-    animation: leakUp 0.75s cubic-bezier(.2,.8,.2,1) forwards;
-    padding: 4px 0;
+    letter-spacing:1.8px;
+    animation: leakUp 0.65s cubic-bezier(.2,.8,.2,1) forwards;
+    padding: 6px 0;
     filter: blur(2px);
-    line-height: 1.4;
+    line-height: 1.45;
+    width: 100%;
+    transition: all 0.3s ease;
   }
 
   .line b{
     color: var(--pink);
     font-weight:bold;
-    margin-right:8px;
-    text-shadow: 0 0 12px var(--pink-glow);
+    margin-right:10px;
+    text-shadow: 0 0 14px var(--pink-glow);
   }
 
-  /* Aşağıdan yukarıya doğru süzülme animasyonu */
+  /* Aşağıdan yukarıya doğru süzülerek gelme animasyonu */
   @keyframes leakUp{
-    0%{ opacity:0; transform: translateY(35px) scale(0.92); filter: blur(4px); }
-    40%{ opacity:0.9; filter: blur(0px); }
-    70%{ opacity:1; transform: translateY(-3px) scale(1.01); }
-    100%{ opacity:0.92; transform: translateY(0) scale(1); }
+    0%{ opacity:0; transform: translateY(45px) scale(0.9); filter: blur(5px); }
+    50%{ opacity:0.95; filter: blur(0px); }
+    80%{ opacity:1; transform: translateY(-4px) scale(1.02); }
+    100%{ opacity:0.95; transform: translateY(0) scale(1); }
   }
 
   #glow-line{
@@ -243,7 +248,7 @@
     transform: translateX(-50%);
     color: var(--pink-deep);
     font-family:'Courier New', monospace;
-    font-size:13px;
+    font-size:14px;
     letter-spacing:4px;
     opacity:0;
     z-index:7;
@@ -322,19 +327,25 @@
     }, 600);
   });
 
-  // Yazıları ekleme fonksiyonu: Eski yazılar biraz daha büyük, yeniler hafifçe küçülür
+  // Yazıları ekleme fonksiyonu:
+  // - Eski yazılar (ilk gelenler) daha BÜYÜK başlar (~25px),
+  // - Her yeni satırda çok hafif küçülür (min 18px),
+  // - Yeni satır en alta eklendiği an üsttekileri yukarı doğru iter!
   function addLine(label, value, delay){
     setTimeout(() => {
       const div = document.createElement('div');
       div.className = 'line';
       
-      // Temel font boyutu 18.5px'den başlayıp her satırda 0.3px küçülür (minimum 14.5px)
-      const calculatedSize = Math.max(18.5 - (lineCount * 0.3), 14.5);
+      // Temel font boyutu 25px'den başlar ve her satırda 0.35px küçülür (minimum 18px)
+      const calculatedSize = Math.max(25.0 - (lineCount * 0.35), 18.0);
       div.style.fontSize = `${calculatedSize.toFixed(1)}px`;
       
       div.innerHTML = `<b>${label}:</b>${value}`;
       stream.appendChild(div);
       lineCount++;
+
+      // Kutu taştığında en alttaki yeni satırın her zaman görünmesini ve akışı yukarı itmesini sağlar
+      stream.scrollTop = stream.scrollHeight;
     }, delay);
   }
 
@@ -367,10 +378,10 @@
       ["LOCAL TIME", now],
     ];
 
-    // Daha hızlı akış hızı için süreler kısaltıldı (ortalama ~180-280ms aralığı)
+    // Daha hızlı akış hızı (~160-260ms aralığı)
     let t = 150;
     facts.forEach(([label, value]) => {
-      t = jitter(t, 130) + 160;
+      t = jitter(t, 100) + 160;
       addLine(label, value, t);
     });
 
@@ -380,10 +391,10 @@
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
       const dbgInfo = gl.getExtension('WEBGL_debug_renderer_info');
       const renderer = gl.getParameter(dbgInfo.UNMASKED_RENDERER_WEBGL);
-      t = jitter(t, 150) + 180;
+      t = jitter(t, 120) + 160;
       addLine("GPU", renderer, t);
     }catch(e){
-      t = jitter(t, 150) + 180;
+      t = jitter(t, 120) + 160;
       addLine("GPU", "could not be read", t);
     }
 
@@ -391,30 +402,30 @@
     if (navigator.getBattery){
       try{
         const battery = await navigator.getBattery();
-        t = jitter(t, 150) + 180;
+        t = jitter(t, 120) + 160;
         addLine("BATTERY", `${Math.round(battery.level*100)}% ${battery.charging ? "(charging)" : ""}`, t);
       }catch(e){}
     }
 
-    t = jitter(t, 200) + 220;
+    t = jitter(t, 150) + 180;
     addLine("STATUS", "still watching", t);
 
-    // IP / Location lookup (daha seri gelmesi için zamanlama sıkılaştırıldı)
-    t = jitter(t, 200) + 250;
+    // IP / Location lookup
+    t = jitter(t, 150) + 200;
     fetch('https://ipapi.co/json/')
       .then(res => res.json())
       .then(data => {
         let ti = t;
         addLine("IP ADDRESS", data.ip || "unknown", ti);
-        ti = jitter(ti, 150) + 160;
+        ti = jitter(ti, 120) + 150;
         addLine("ISP", data.org || "unknown", ti);
-        ti = jitter(ti, 150) + 160;
+        ti = jitter(ti, 120) + 150;
         addLine("CITY / COUNTRY", `${data.city || "?"}, ${data.country_name || "?"}`, ti);
-        ti = jitter(ti, 150) + 160;
+        ti = jitter(ti, 120) + 150;
         addLine("COORDINATES", `${data.latitude || "?"}, ${data.longitude || "?"}`, ti);
-        ti = jitter(ti, 150) + 160;
+        ti = jitter(ti, 120) + 150;
         addLine("TIMEZONE", data.timezone || "unknown", ti);
-        ti = jitter(ti, 200) + 250;
+        ti = jitter(ti, 150) + 200;
         addLine("STATUS", "i found you", ti);
       })
       .catch(() => {
