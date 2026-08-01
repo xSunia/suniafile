@@ -19,10 +19,10 @@
             overflow: hidden;
             font-family: 'Share Tech Mono', monospace;
             background-color: #1a1118;
-            color: #ffb7d5;
+            color: #ff6699;
         }
 
-        /* Arka Plan Gif */
+        /* Arka Plan Gif - Tam Ekran ve Net Görünür */
         #bg-video {
             position: fixed;
             top: 0;
@@ -31,17 +31,17 @@
             height: 100vh;
             object-fit: cover;
             z-index: -2;
-            filter: brightness(0.6) contrast(1.1);
+            filter: brightness(0.75) contrast(1.1); /* Arka planın daha net görünmesi için parlaklık artırıldı */
         }
 
-        /* Pembe / Kremsi Katman (Overlay) */
+        /* Hafif Karartma Katmanı (Gif'in okunabilirliği bozmaması için) */
         .overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: radial-gradient(circle, rgba(255, 183, 213, 0.1) 0%, rgba(26, 17, 24, 0.85) 100%);
+            background: rgba(26, 17, 24, 0.35);
             z-index: -1;
         }
 
@@ -52,9 +52,9 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(26, 17, 24, 0.7);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
+            background: rgba(26, 17, 24, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -77,37 +77,32 @@
             100% { transform: scale(1); opacity: 0.8; }
         }
 
-        /* Bilgi Akış Ekranı */
+        /* Bilgi Akış Alanı - Çerçevesiz, doğrudan ekranda akan yapı */
         #content-container {
             position: relative;
             width: 100%;
             height: 100%;
             overflow-y: auto;
-            padding: 40px 20px;
+            padding: 50px 40px;
             display: none;
             opacity: 0;
             transition: opacity 2s ease;
         }
 
-        .terminal-box {
-            max-width: 750px;
+        .terminal-stream {
+            max-width: 850px;
             margin: 0 auto;
-            background: rgba(35, 20, 30, 0.65);
-            border: 1px solid rgba(255, 183, 213, 0.3);
-            box-shadow: 0 0 20px rgba(255, 117, 160, 0.15);
-            padding: 30px;
-            border-radius: 4px;
-            backdrop-filter: blur(5px);
         }
 
         .line {
-            margin-bottom: 12px;
-            font-size: 1.1rem;
+            margin-bottom: 10px;
+            font-size: 1.05rem; /* Sabit orta boyut */
             line-height: 1.5;
-            text-shadow: 0 0 5px rgba(255, 183, 213, 0.4);
+            color: #ff6699; /* Canlı gül pembesi */
+            text-shadow: 0 0 6px rgba(255, 102, 153, 0.6), 0 0 2px #000;
             opacity: 0;
             transform: translateY(15px);
-            animation: slideDown 0.6s forwards;
+            animation: slideDown 0.5s forwards;
         }
 
         @keyframes slideDown {
@@ -118,34 +113,37 @@
         }
 
         .section-title {
-            color: #ff75a0;
+            color: #ff3377;
+            font-size: 1.15rem;
             font-weight: bold;
-            margin-top: 20px;
+            margin-top: 25px;
             margin-bottom: 10px;
-            text-align: center;
             letter-spacing: 2px;
+            text-shadow: 0 0 8px rgba(255, 51, 119, 0.8), 0 0 2px #000;
+            opacity: 0;
+            transform: translateY(15px);
+            animation: slideDown 0.5s forwards;
         }
 
         .highlight {
-            color: #ffe4e9;
+            color: #ff99bb;
         }
 
         /* Scrollbar Özelleştirme */
         ::-webkit-scrollbar {
-            width: 6px;
+            width: 5px;
         }
         ::-webkit-scrollbar-track {
-            background: #1a1118;
+            background: transparent;
         }
         ::-webkit-scrollbar-thumb {
-            background: #ff75a0;
+            background: rgba(255, 102, 153, 0.5);
             border-radius: 3px;
         }
     </style>
 </head>
 <body>
 
-    <!-- Arka Plan Medyaları (Dosya adları seninkilerle aynı: fina.gif ve paka.mp3) -->
     <img id="bg-video" src="fina.gif" alt="Background GIF">
     <div class="overlay"></div>
 
@@ -153,24 +151,20 @@
         <source src="paka.mp3" type="audio/mpeg">
     </audio>
 
-    <!-- Giriş Ekranı -->
     <div id="enter-screen" onclick="startExperience()">
         <h1>click :3</h1>
     </div>
 
-    <!-- Kullanıcı Bilgileri Akış Alanı -->
     <div id="content-container">
-        <div class="terminal-box" id="info-output"></div>
+        <div class="terminal-stream" id="info-output"></div>
     </div>
 
     <script>
         function startExperience() {
-            // Müziği başlat
             const audio = document.getElementById('bg-audio');
             audio.volume = 0.5;
             audio.play().catch(e => console.log("Audio play error:", e));
 
-            // Giriş ekranını yok et
             const enterScreen = document.getElementById('enter-screen');
             enterScreen.style.opacity = '0';
             setTimeout(() => {
@@ -185,20 +179,17 @@
         async function loadUserInfo() {
             const output = document.getElementById('info-output');
 
-            // IP ve Konum Bilgisi Çekme (IPAPI)
             let ipData = {};
             try {
-                let res = await fetch('https://ipapi.co/json/');
+                let res = await fetch('https://ipwho.is/');
                 ipData = await res.json();
             } catch (e) {
-                ipData = { ip: 'N/A', org: 'N/A', asn: 'N/A', city: 'N/A', region: 'N/A', country_name: 'N/A', latitude: 'N/A', longitude: 'N/A', timezone: 'N/A' };
+                ipData = {};
             }
 
-            // Donanım / Sistem Bilgileri
             const nav = window.navigator;
             const screenInfo = window.screen;
             
-            // GPU Bilgisi Tahmini (WebGL)
             let gpuVendor = "N/A";
             let gpuRenderer = "N/A";
             try {
@@ -213,7 +204,6 @@
                 }
             } catch(e) {}
 
-            // Batarya Durumu
             let batteryStatus = "N/A";
             let chargingStatus = "N/A";
             if (nav.getBattery) {
@@ -224,15 +214,14 @@
                 } catch(e) {}
             }
 
-            // Gösterilecek Veri Listesi
             const lines = [
                 { text: "--- NETWORK ---", type: "title" },
                 { text: `IP ADDRESS: <span class="highlight">${ipData.ip || 'N/A'}</span>` },
-                { text: `ISP: <span class="highlight">${ipData.org || 'N/A'}</span>` },
-                { text: `ASN: <span class="highlight">${ipData.asn || 'N/A'}</span>` },
-                { text: `LOCATION: <span class="highlight">${ipData.city || ''}, ${ipData.region || ''}, ${ipData.country_name || ''}</span>` },
+                { text: `ISP: <span class="highlight">${ipData.connection?.isp || ipData.org || 'N/A'}</span>` },
+                { text: `ASN: <span class="highlight">${ipData.connection?.asn || 'N/A'}</span>` },
+                { text: `LOCATION: <span class="highlight">${ipData.city || ''}, ${ipData.region || ''}, ${ipData.country || 'N/A'}</span>` },
                 { text: `LAT/LONG: <span class="highlight">${ipData.latitude || 'N/A'}, ${ipData.longitude || 'N/A'}</span>` },
-                { text: `TIMEZONE: <span class="highlight">${ipData.timezone || 'N/A'}</span>` },
+                { text: `TIMEZONE: <span class="highlight">${ipData.timezone?.id || 'N/A'}</span>` },
                 
                 { text: "--- HARDWARE ---", type: "title" },
                 { text: `CPU THREADS: <span class="highlight">${nav.hardwareConcurrency || 'N/A'}</span>` },
@@ -253,18 +242,16 @@
                 { text: `TIME: <span class="highlight">${new Date().toLocaleString()}</span>` }
             ];
 
-            // Akış Efekti (Sırayla aşağı doğru yazdırma)
             for (let i = 0; i < lines.length; i++) {
                 let div = document.createElement('div');
                 div.className = lines[i].type === "title" ? "section-title" : "line";
                 div.innerHTML = lines[i].text;
                 output.appendChild(div);
                 
-                // Otomatik aşağı kaydırma
                 let container = document.getElementById('content-container');
                 container.scrollTop = container.scrollHeight;
 
-                await new Promise(r => setTimeout(r, 90)); // Akış hızı
+                await new Promise(r => setTimeout(r, 90));
             }
         }
     </script>
