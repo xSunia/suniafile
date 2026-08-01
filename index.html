@@ -231,6 +231,11 @@
     text-shadow: 0 0 12px var(--pink-glow);
   }
 
+  /* Şifre çözülen (decode olan) değer kısmı */
+  .line .val{
+    color: var(--pink-light);
+  }
+
   /* İlk "who are you?" satırı biraz farklı vurgulansın */
   .line.question b{
     color: var(--pink-light);
@@ -307,7 +312,6 @@
 
   .eye.show{
     opacity:0.9;
-    animation: eyeCreepBlink 4.5s infinite;
   }
 
   .eye-left{  top:50%; left:1.5vw;  transform: translateY(-50%); }
@@ -409,9 +413,9 @@
       const dx = clientX - cx;
       const dy = clientY - cy;
       const angle = Math.atan2(dy, dx);
-      const maxDist = 10; // pupilin göz içinde hareket edebileceği en fazla mesafe
+      const maxDist = 10;
       const px = Math.cos(angle) * maxDist;
-      const py = Math.sin(angle) * maxDist * 0.55; // göz oval olduğu için dikeyde biraz kısıtla
+      const py = Math.sin(angle) * maxDist * 0.55;
       const pupil = eye.querySelector('.pupil');
       pupil.style.transform = `translate(${px}px, ${py}px)`;
     });
@@ -428,7 +432,6 @@
     if (started) return;
     started = true;
 
-    // Tam ekran isteği kullanıcı tıklamasıyla aynı anda tetiklenmeli
     goFullscreen();
 
     clickScreen.classList.add('hidden');
@@ -455,7 +458,7 @@
 
   // Her satır bir öncekinden biraz büyük ya da küçük olur (16px - 34px arası)
   function nextSize(){
-    const delta = (Math.random() * 7) - 3.5; // -3.5 .. +3.5
+    const delta = (Math.random() * 7) - 3.5;
     lastSize = Math.min(34, Math.max(16, lastSize + delta));
     return lastSize;
   }
@@ -474,18 +477,69 @@
     streamInner.style.transform = `scale(${scale})`;
   }
 
+  // ---- MATRIX TARZI ŞİFRE ÇÖZME EFEKTİ ----
+  // Önce hızlıca rastgele karakterler akar, sonra soldan sağa doğru
+  // gerçek karakterler kilitlenir (decode).
+  const SCRAMBLE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*<>{}[]/\\-_=+?~";
+
+  function scrambleReveal(el, finalText){
+    const text = String(finalText);
+    const len = text.length;
+    if (len === 0){ el.textContent = ''; return; }
+
+    const totalFrames = 16;       // toplam kaç kare sürecek
+    const scrambleFrames = 6;     // ilk N kare boyunca tamamen rastgele akar (hızlı flaş)
+    let frame = 0;
+
+    const timer = setInterval(() => {
+      let out = '';
+      for (let i = 0; i < len; i++){
+        const ch = text[i];
+        if (ch === ' '){ out += ' '; continue; }
+
+        // her karakterin kilitlenme anı soldan sağa kademeli ilerler
+        const revealAt = scrambleFrames + Math.floor((i / len) * (totalFrames - scrambleFrames));
+
+        if (frame >= revealAt){
+          out += ch;
+        } else {
+          out += SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+        }
+      }
+      el.textContent = out;
+      frame++;
+
+      if (frame > totalFrames){
+        el.textContent = text;
+        clearInterval(timer);
+        fitToContainer();
+      }
+    }, 26); // ~26ms/kare -> hızlı flaş hissi
+  }
+
   function addLine(label, value, delay, extraClass){
     setTimeout(() => {
       const div = document.createElement('div');
       div.className = 'line' + (extraClass ? ' ' + extraClass : '');
       div.style.fontSize = `${nextSize().toFixed(1)}px`;
-      div.innerHTML = `<b>${label}:</b>${value}`;
+
+      const labelEl = document.createElement('b');
+      labelEl.textContent = label + ':';
+
+      const valueEl = document.createElement('span');
+      valueEl.className = 'val';
+
+      div.appendChild(labelEl);
+      div.appendChild(document.createTextNode(' '));
+      div.appendChild(valueEl);
+
       streamInner.appendChild(div);
       fitToContainer();
+
+      scrambleReveal(valueEl, value);
     }, delay);
   }
 
-  // Pencere boyutu değişirse yeniden hizala
   window.addEventListener('resize', fitToContainer);
 
   function jitter(base, spread){
@@ -495,10 +549,8 @@
   async function revealInfo(){
     let t = 150;
 
-    // 1) Başlıktan hemen sonra ilk soru satırı
     addLine("STATUS", "who are you?", t, "question");
 
-    // 2) Ardından IP adresi ve konum bilgileri
     t = jitter(t, 200) + 400;
     fetch('https://ipapi.co/json/')
       .then(res => res.json())
@@ -520,7 +572,6 @@
         ti = jitter(ti, 150) + 160;
         addLine("ASN", data.asn || "unknown", ti);
 
-        // 3) IP bilgisinden sonra diğer cihaz/tarayıcı bilgileri devam eder
         continueWithDeviceInfo(ti + jitter(200, 200));
       })
       .catch(() => {
@@ -593,7 +644,6 @@
       addLine(label, value, t);
     });
 
-    // GPU
     try{
       const canvas = document.createElement('canvas');
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
@@ -609,7 +659,6 @@
       addLine("GPU", "could not be read", t);
     }
 
-    // Audio context sample rate
     try{
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       const actx = new AudioCtx();
@@ -618,7 +667,6 @@
       actx.close && actx.close();
     }catch(e){}
 
-    // Battery
     if (navigator.getBattery){
       try{
         const battery = await navigator.getBattery();
